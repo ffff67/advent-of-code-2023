@@ -4,15 +4,25 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strconv"
 	"strings"
 )
 
 func main() {
-	file, _ := os.Open("input")
-	data, _ := io.ReadAll(file)
+	file, err := os.Open("input")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	lines := bytes.Split(data, []byte("\n"))
+
 	part1(lines)
 	part2(lines)
 }
@@ -21,23 +31,19 @@ func part1(lines [][]byte) {
 	var calibrationValues []int
 	for _, line := range lines {
 		var value []string
-		for j, byte := range line {
-			s := string(byte)
+		for _, b := range line {
+			s := string(b)
 
 			if _, err := strconv.Atoi(s); err == nil {
 				value = append(value, s)
 			}
-
-			if j == (len(line) - 1) {
-				recoveredValue, _ := strconv.Atoi(value[0] + value[len(value)-1])
-				calibrationValues = append(calibrationValues, recoveredValue)
-			}
 		}
+
+		recoveredValue, _ := strconv.Atoi(value[0] + value[len(value)-1])
+		calibrationValues = append(calibrationValues, recoveredValue)
 	}
-	var sum int
-	for _, v := range calibrationValues {
-		sum += v
-	}
+
+	sum := getSum(calibrationValues)
 	fmt.Printf("part 1: %d\n", sum)
 }
 
@@ -53,6 +59,7 @@ func part2(lines [][]byte) {
 		"eight": 8,
 		"nine":  9,
 	}
+
 	var calibrationValues []int
 	for _, line := range lines {
 		var value []int
@@ -85,14 +92,22 @@ func part2(lines [][]byte) {
 			}
 		}
 
-		finalValue, _ := strconv.Atoi(fmt.Sprintf("%v%v", value[0], value[len(value)-1]))
+		finalValue, err := strconv.Atoi(fmt.Sprintf("%v%v", value[0], value[len(value)-1]))
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		calibrationValues = append(calibrationValues, finalValue)
 	}
 
+	sum := getSum(calibrationValues)
+	fmt.Printf("part 2: %d\n", sum)
+}
+
+func getSum(values []int) int {
 	var sum int
-	for _, v := range calibrationValues {
+	for _, v := range values {
 		sum += v
 	}
-	fmt.Printf("part 2: %d\n", sum)
+	return sum
 }
