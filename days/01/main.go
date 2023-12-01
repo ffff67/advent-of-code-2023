@@ -23,31 +23,28 @@ func main() {
 
 	lines := bytes.Split(data, []byte("\n"))
 
-	part1(lines)
-	part2(lines)
+	fmt.Printf("part 1: %d\n", part1(lines))
+	fmt.Printf("part 2: %d\n", part2(lines))
 }
 
-func part1(lines [][]byte) {
+func part1(lines [][]byte) int {
 	var calibrationValues []int
 	for _, line := range lines {
-		var value []string
+		var values []int
 		for _, b := range line {
-			s := string(b)
-
-			if _, err := strconv.Atoi(s); err == nil {
-				value = append(value, s)
+			if num, err := strconv.Atoi(string(b)); err == nil {
+				values = append(values, num)
 			}
 		}
 
-		recoveredValue, _ := strconv.Atoi(value[0] + value[len(value)-1])
-		calibrationValues = append(calibrationValues, recoveredValue)
+		finalValue := values[0]*10 + values[len(values)-1]
+		calibrationValues = append(calibrationValues, finalValue)
 	}
 
-	sum := getSum(calibrationValues)
-	fmt.Printf("part 1: %d\n", sum)
+	return getSum(calibrationValues)
 }
 
-func part2(lines [][]byte) {
+func part2(lines [][]byte) int {
 	numberMap := map[string]int{
 		"one":   1,
 		"two":   2,
@@ -62,13 +59,12 @@ func part2(lines [][]byte) {
 
 	var calibrationValues []int
 	for _, line := range lines {
-		var value []int
-		var substring string
+		var values []int
 		var substringIndexes []int
-		for _, byte := range line {
-			s := string(byte)
+		for j, byte := range line {
+			substring := string(line[:j+1])
 
-			substring += s
+			// Append number in word form to array of values.
 			for k, v := range numberMap {
 				if index := strings.LastIndex(substring, k); index != -1 {
 					var isFoundBefore bool
@@ -81,27 +77,23 @@ func part2(lines [][]byte) {
 					}
 
 					if !isFoundBefore {
-						value = append(value, v)
+						values = append(values, v)
 						substringIndexes = append(substringIndexes, index)
 					}
 				}
 			}
 
-			if n, err := strconv.Atoi(s); err == nil {
-				value = append(value, n)
+			// Append numbers in digit form to array of values.
+			if n, err := strconv.Atoi(string(byte)); err == nil {
+				values = append(values, n)
 			}
 		}
 
-		finalValue, err := strconv.Atoi(fmt.Sprintf("%v%v", value[0], value[len(value)-1]))
-		if err != nil {
-			log.Fatal(err)
-		}
-
+		finalValue := values[0]*10 + values[len(values)-1]
 		calibrationValues = append(calibrationValues, finalValue)
 	}
 
-	sum := getSum(calibrationValues)
-	fmt.Printf("part 2: %d\n", sum)
+	return getSum(calibrationValues)
 }
 
 func getSum(values []int) int {
