@@ -24,23 +24,58 @@ func main() {
 	cards := strings.Split(string(data), "\n")
 
 	fmt.Printf("part 1: %d\n", part1(cards))
+	fmt.Printf("part 2: %d\n", part2(cards))
+
 }
 
 func part1(cards []string) int {
 	var totalPoints int
 
+	matches := getNumberOfMatchesForEachCard(cards)
+	for _, numOfMatches := range matches {
+		totalPoints += calculatePoints(numOfMatches)
+	}
+	return totalPoints
+}
+
+func part2(cards []string) int {
+	matches := getNumberOfMatchesForEachCard(cards)
+	var sum int
+	for i := 0; i < len(matches); i++ {
+		sum += countCards(matches, i)
+	}
+
+	return sum
+}
+
+func countCards(matches []int, cardNumber int) int {
+	// Get number of copies
+	copies := matches[cardNumber]
+
+	// Recursively add copies for each copy
+	var sum int
+	for i := 0; i < copies; i++ {
+		sum += countCards(matches, cardNumber+i+1)
+	}
+
+	// Add current card
+	return 1 + sum
+}
+
+func getNumberOfMatchesForEachCard(cards []string) []int {
+	var numOfMatchesSlice []int
 	re := regexp.MustCompile(`Card\s+\d+:\s+((?:\d+\s*)+)\s+\|\s+((?:\d+\s*)+)`)
 
 	for _, card := range cards {
 		matches := re.FindStringSubmatch(card)
 		winningNumbers, yourNumbers := strings.Fields(matches[1]), strings.Fields(matches[2])
 
-		matchingNumbers := matchingNumbers(convertToIntSlice(winningNumbers), convertToIntSlice(yourNumbers))
+		n := numberOfMatches(convertToIntSlice(winningNumbers), convertToIntSlice(yourNumbers))
 
-		points := calculatePoints(len(matchingNumbers))
-		totalPoints += points
+		numOfMatchesSlice = append(numOfMatchesSlice, n)
 	}
-	return totalPoints
+
+	return numOfMatchesSlice
 }
 
 func convertToIntSlice(s []string) []int {
@@ -55,12 +90,12 @@ func convertToIntSlice(s []string) []int {
 	return res
 }
 
-func matchingNumbers(s1 []int, s2 []int) []int {
-	var matches []int
+func numberOfMatches(s1 []int, s2 []int) int {
+	var matches int
 	for _, n1 := range s1 {
 		for _, n2 := range s2 {
 			if n1 == n2 {
-				matches = append(matches, n1)
+				matches += 1
 			}
 		}
 	}
