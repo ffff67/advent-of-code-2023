@@ -62,7 +62,7 @@ func part2(lines []string) int {
 		RecordDistance: d,
 	}
 
-	return waysToWin2(race)
+	return waysToWin(race)
 }
 
 func convertToIntSlice(s []string) []int {
@@ -78,19 +78,6 @@ func convertToIntSlice(s []string) []int {
 }
 
 func waysToWin(race Race) int {
-	var wins int
-	for i := 0; i < race.Time; i++ {
-		buttonPressTime, speed := i, i
-		timeLeft := race.Time - buttonPressTime
-		distance := speed * timeLeft
-		if distance > race.RecordDistance {
-			wins++
-		}
-	}
-	return wins
-}
-
-func waysToWin2(race Race) int {
 	var wins int
 	half := race.Time / 2
 	distance := (race.Time - half) * half
