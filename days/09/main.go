@@ -32,7 +32,7 @@ func part1(lines []string) int {
 
 	nextValues := make([]int, len(histories))
 	for i, history := range histories {
-		nextValues[i] = getNextValue(history)
+		nextValues[i] = extrapolateNextValue(history, Forward)
 	}
 
 	return sumOfIntSlice(nextValues)
@@ -40,10 +40,10 @@ func part1(lines []string) int {
 
 func part2(lines []string) int {
 	histories := parseHistories(lines)
-
 	previousValues := make([]int, len(histories))
+
 	for i, history := range histories {
-		previousValues[i] = getPreviousValue(history)
+		previousValues[i] = extrapolateNextValue(history, Backward)
 	}
 
 	return sumOfIntSlice(previousValues)
@@ -51,62 +51,78 @@ func part2(lines []string) int {
 
 func parseHistories(lines []string) [][]int {
 	histories := make([][]int, len(lines))
+
 	for i, line := range lines {
 		s := strings.Fields(line)
 		history := make([]int, len(s))
+
 		for j, v := range s {
 			num, err := strconv.Atoi(v)
 			if err != nil {
 				log.Fatal(err)
 			}
+
 			history[j] = num
 		}
+
 		histories[i] = history
 	}
 
 	return histories
 }
 
-func getNextValue(history []int) int {
-	var lastValues []int
-	lastValues = append(lastValues, history[len(history)-1])
+const (
+	Forward = iota
+	Backward
+)
 
+func extrapolateNextValue(history []int, direction int) int {
+	var values []int
+
+	save := getValueInSequence(direction, history)
+	values = append(values, save)
 	sequence := history
+
 	for !isAllZeroes(sequence) {
 		sequence = getSequenceOfDifferences(sequence)
-		lastValues = append(lastValues, sequence[len(sequence)-1])
+		save = getValueInSequence(direction, sequence)
+		values = append(values, save)
 	}
 
 	next := 0
-	for i := len(lastValues) - 1; i > 0; i-- {
-		next = lastValues[i-1] + next
+	for i := len(values) - 1; i > 0; i-- {
+		if direction == Backward {
+			next *= -1
+		}
+
+		next = values[i-1] + next
 	}
 
 	return next
 }
 
-func getPreviousValue(history []int) int {
-	var firstValues []int
-	firstValues = append(firstValues, history[0])
+func getValueInSequence(direction int, sequence []int) int {
+	var value int
 
-	sequence := history
-	for !isAllZeroes(sequence) {
-		sequence = getSequenceOfDifferences(sequence)
-		firstValues = append(firstValues, sequence[0])
+	switch direction {
+	case Forward:
+		// If extrapolating forward, return the value at the end of sequence.
+		value = sequence[len(sequence)-1]
+	case Backward:
+		// If extrapolating backwards, return the value at the beginning of sequence.
+		value = sequence[0]
+	default:
+		// Raise error if it's not either direction.
+		log.Fatal(fmt.Sprintf("Error: Cannot read direction \"%v\"\n", direction))
 	}
 
-	next := 0
-	for i := len(firstValues) - 1; i > 0; i-- {
-		next = firstValues[i-1] - next
-	}
-
-	return next
+	return value
 }
 
-func getSequenceOfDifferences(history []int) []int {
-	sequenceOfDifferences := make([]int, len(history)-1)
-	for i := 0; i < len(history)-1; i++ {
-		sequenceOfDifferences[i] = history[i+1] - history[i]
+func getSequenceOfDifferences(sequence []int) []int {
+	sequenceOfDifferences := make([]int, len(sequence)-1)
+	for i := 0; i < len(sequence)-1; i++ {
+		sequenceOfDifferences[i] = sequence[i+1] - sequence[i]
 	}
 
 	return sequenceOfDifferences
