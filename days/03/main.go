@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math"
 	"os"
+	"slices"
+	"strconv"
 	"strings"
-	"unicode"
 )
 
 func main() {
@@ -21,135 +21,63 @@ func main() {
 		log.Fatal(err)
 	}
 
-	schematic := strings.Split(string(data), "\n")
+	trimmedData := strings.Trim(string(data), "\n")
+	schematic := strings.Split(trimmedData, "\n")
 
 	fmt.Printf("part 1: %d\n", part1(schematic))
-}
-
-type VisualPoint struct {
-	Value int
-	X     int
-	Y     int
-}
-
-func part1(schematic []string) int {
-	var partNumbers []int
-
-	for y, line := range schematic {
-		var numbers []VisualPoint
-		for x, r := range line {
-
-			// Go down one by one element and store consecutive numbers
-			if unicode.IsDigit(r) {
-				vp := VisualPoint{
-					Value: int(r - '0'),
-					X:     x,
-					Y:     y,
-				}
-				numbers = append(numbers, vp)
-			} else {
-				// If full number, check surroundings for symbols
-				if len(numbers) > 0 && isAdjacentToSymbol(schematic, numbers) {
-					// Add to array of part numbers
-					finalValue := getFinalValue(numbers)
-					partNumbers = append(partNumbers, finalValue)
-				}
-
-				numbers = []VisualPoint{}
-			}
-		}
-		// Check number at the end of line
-		if len(numbers) > 0 && isAdjacentToSymbol(schematic, numbers) {
-			finalValue := getFinalValue(numbers)
-			partNumbers = append(partNumbers, finalValue)
-		}
-	}
-
-	return sum(partNumbers)
-}
-
-func getFinalValue(numbers []VisualPoint) int {
-	var values []int
-	for _, vp := range numbers {
-		values = append(values, vp.Value)
-	}
-	finalValue := combineNumbers(values)
-	return finalValue
-}
-
-func combineNumbers(nums []int) int {
-	var res int
-	l := len(nums)
-	for i, v := range nums {
-		pow := math.Pow(10, float64(l-i-1))
-		res += v * int(pow)
-	}
-	return res
+	fmt.Printf("part 2: %d\n", part2(schematic))
 }
 
 type Coordinate struct {
-	X int
-	Y int
+	Row int
+	Col int
 }
 
-func isAdjacentToSymbol(schematic []string, numbers []VisualPoint) bool {
-	for _, vp := range numbers {
-		// get array of surroundings
-		var surroundings []Coordinate
-		var left, right, up, down, diagonalUpLeft, diagonalUpRight, diagonalDownLeft, diagonalDownRight Coordinate
-		width, height := len(schematic[0]), len(schematic)
+func (c Coordinate) Equal(other Coordinate) bool {
+	return c.Row == other.Row && c.Col == other.Col
+}
 
-		if vp.X > 0 {
-			left = Coordinate{X: vp.X - 1, Y: vp.Y}
-			surroundings = append(surroundings, left)
-		}
-		if vp.X < width-2 {
-			right = Coordinate{X: vp.X + 1, Y: vp.Y}
-			surroundings = append(surroundings, right)
-		}
-		if vp.Y > 0 {
-			up = Coordinate{X: vp.X, Y: vp.Y - 1}
-			surroundings = append(surroundings, up)
-		}
-
-		if vp.Y < height-2 {
-			down = Coordinate{X: vp.X, Y: vp.Y + 1}
-			surroundings = append(surroundings, down)
-		}
-
-		if vp.X > 0 && vp.Y > 0 {
-			diagonalUpLeft = Coordinate{X: vp.X - 1, Y: vp.Y - 1}
-			surroundings = append(surroundings, diagonalUpLeft)
-		}
-
-		if vp.X > 0 && vp.Y < height-2 {
-			diagonalDownLeft = Coordinate{X: vp.X - 1, Y: vp.Y + 1}
-			surroundings = append(surroundings, diagonalDownLeft)
-		}
-
-		if vp.X < width-2 && vp.Y > 0 {
-			diagonalUpRight = Coordinate{X: vp.X + 1, Y: vp.Y - 1}
-			surroundings = append(surroundings, diagonalUpRight)
-		}
-
-		if vp.X < width-2 && vp.Y < height-2 {
-			diagonalDownRight = Coordinate{X: vp.X + 1, Y: vp.Y + 1}
-			surroundings = append(surroundings, diagonalDownRight)
-		}
-
-		for _, coord := range surroundings {
-			if isSymbol(string(schematic[coord.Y][coord.X])) {
-				return true
+func part1(schematic []string) int {
+	sum := 0
+	for i, row := range schematic {
+		for j, r := range row {
+			if isSymbol(r) {
+				firstDigitIndices := checkSurroundings(schematic, Coordinate{Row: i, Col: j})
+				numbers := getNumbers(schematic, firstDigitIndices)
+				for _, n := range numbers {
+					sum += n
+				}
 			}
 		}
-
 	}
 
-	return false
+	return sum
 }
 
-func isSymbol(x string) bool {
-	symbols := []string{"@", "#", "$", "%", "&", "*", "+", "-", "/", "="}
+func part2(schematic []string) int {
+	sum := 0
+	for i, row := range schematic {
+		for j, r := range row {
+			if isSymbol(r) {
+				firstDigitIndices := checkSurroundings(schematic, Coordinate{Row: i, Col: j})
+
+				if len(firstDigitIndices) == 2 {
+					numbers := getNumbers(schematic, firstDigitIndices)
+
+					if len(numbers) == 2 {
+						gearRatio := numbers[0] * numbers[1]
+						sum += gearRatio
+					}
+				}
+			}
+		}
+	}
+
+	return sum
+}
+
+func isSymbol(x rune) bool {
+	symbols := []rune{'@', '#', '$', '%', '&', '*', '+', '-', '/', '='}
 	for _, sym := range symbols {
 		if x == sym {
 			return true
@@ -159,10 +87,62 @@ func isSymbol(x string) bool {
 	return false
 }
 
-func sum(nums []int) int {
-	var res int
-	for _, v := range nums {
-		res += v
+func checkSurroundings(schematic []string, coord Coordinate) []Coordinate {
+	var indices []Coordinate
+	length, width := len(schematic), len(schematic[0])
+
+	for dx := -1; dx <= 1; dx++ {
+		for dy := -1; dy <= 1; dy++ {
+			x := coord.Col + dx
+			y := coord.Row + dy
+			if x >= 0 && x <= width && y >= 0 && y <= length {
+				if _, err := strconv.Atoi(string(schematic[y][x])); err == nil {
+					for x > 0 && isDigit(schematic[y][x-1]) {
+						x--
+					}
+
+					newIndex := Coordinate{Col: x, Row: y}
+					if !slices.Contains(indices, newIndex) {
+						indices = append(indices, newIndex)
+					}
+				}
+			}
+		}
 	}
-	return res
+
+	return indices
+}
+
+func getNumbers(schematic []string, numberIndices []Coordinate) []int {
+	var numbers []int
+	var firstIndices []Coordinate
+
+	for _, c := range numberIndices {
+		var num, index int
+		placeValue := 0
+		for index = c.Col; index < len(schematic[c.Row]); index++ {
+			if n, err := strconv.Atoi(string(schematic[c.Row][index])); err == nil {
+				num *= 10
+				num += n
+				placeValue++
+			} else {
+				break
+			}
+		}
+		firstIndex := Coordinate{Row: c.Row, Col: index}
+		if !slices.Contains(firstIndices, firstIndex) {
+			numbers = append(numbers, num)
+			firstIndices = append(firstIndices, firstIndex)
+		}
+	}
+
+	return numbers
+}
+
+func isDigit(b byte) bool {
+	if _, err := strconv.Atoi(string(b)); err == nil {
+		return true
+	}
+
+	return false
 }
